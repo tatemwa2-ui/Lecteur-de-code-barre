@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Scan ISBN - Livre</title>
+    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #scanner { width: 100%; max-width: 400px; margin: auto; }
+        .result { margin-top: 20px; font-size: 16px; }
+    </style>
+</head>
+<body>
+
+<h2>📚 Scanner un livre</h2>
+<div id="scanner"></div>
+<div class="result" id="resultat"></div>
+
+<script>
+    function rechercherLivre(isbn) {
+        fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.totalItems > 0) {
+                    let livre = data.items[0].volumeInfo;
+                    document.getElementById("resultat").innerHTML = `
+                        <b>Titre :</b> ${livre.title}<br>
+                        <b>Auteur(s) :</b> ${(livre.authors || []).join(", ")}<br>
+                        <b>Éditeur :</b> ${livre.publisher || "N/A"}<br>
+                        <b>Année :</b> ${livre.publishedDate || "N/A"}
+                    `;
+                } else {
+                    document.getElementById("resultat").innerText = "Livre non trouvé.";
+                }
+            });
+    }
+
+    Quagga.init({
+        inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: document.querySelector('#scanner'),
+            constraints: {
+                facingMode: "environment"
+            }
+        },
+        decoder: {
+            readers: ["ean_reader"]
+        }
+    }, function(err) {
+        if (err) {
+            console.error(err);
+            return;
+        }
+        Quagga.start();
+    });
+
+    Quagga.onDetected(function(data) {
+        let isbn = data.codeResult.code;
+        Quagga.stop();
+        rechercherLivre(isbn);
+    });
+</script>
+
+</body>
+</html>
